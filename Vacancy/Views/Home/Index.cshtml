@@ -1,0 +1,202 @@
+﻿@{
+    // ViewBag.Title = "Все вакансии";
+}
+
+<style>
+    #myTable tr > *:nth-child(2) {
+        display: none;
+    }
+
+
+    .inp {
+        display: flex;
+    }
+</style>
+
+
+<div class="inp">
+    <form class="inp">
+        <input id="search_text" type="search" name="search_text" placeholder="Введите должность, организацию или тип занятости" class="form-control" />
+        <input id="search_vac" type="image" src="~/images/search_img.png" class="btn btn-default" width="45" height="35" />
+    </form>
+    <form class="inp">
+        <input id="search_null" name="search_null_text" type="image" src="~/images/close_img.png" class="btn btn-default" width="45" height="35" />
+    </form>
+</div>
+
+
+<h2>Вакансии дня г. Уфы</h2>
+<table id="myTable" class="table table-condensed table-striped  col-md-8">
+    <thead><tr><th>№</th><th>id</th><th>Заголовок</th><th>Оклад</th><th>Организация</th><th>Контактное лицо</th><th>Телефон</th><th>Тип занятости</th></tr></thead>
+    <tbody>
+    </tbody>
+</table>
+
+
+@section scripts
+{
+    <script src="~/Scripts/scripts_.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+
+            GetVacancyList();
+
+            $("#search_vac").click(function (event) {
+                event.preventDefault();
+                Search_vacancy(1);
+            });
+
+            $("#search_null").click(function (event) {
+                event.preventDefault();
+                Search_vacancy(2);
+            });
+
+        });
+
+        function Search_vacancy(mode) {
+
+            let rows = document.querySelector("tbody");
+            let tb = document.getElementById("myTable");
+            let s_el = document.getElementById("search_text");
+            var cnt = rows.rows.length;
+
+            for (var i = cnt; i; i--) {
+                tb.deleteRow(i);
+            }
+            if (mode == 2) {
+                var i;
+                for (i = 0; i < 50; i++) {
+                    var vacancy = ParseVacancy(global_vac.items[i]);
+                    rows.append(row(vacancy, i));
+                }
+                s_el.value = "";
+            }
+            else {
+                var data = search_vac;
+                
+                var search = s_el.value;
+                var obj = [], index = 0;
+
+                for (var i = 0; i < data.items.length; i++) {
+                    var data_parse = ParseVacancy(data.items[i]);
+                    if ((data_parse.name.toString().toLowerCase().indexOf(search.toLowerCase()) != -1)|
+                        (data_parse.organization.toString().toLowerCase().indexOf(search.toLowerCase()) != -1) |
+                        (data_parse.empl_type.toString().toLowerCase().indexOf(search.toLowerCase()) != -1)
+                       
+                    ) {
+                        obj[index] = data_parse.name;
+                        index++;
+                        rows.append(row(data_parse, index - 1));
+
+                    }
+                }
+            }
+        }
+            // Получение всех вакансий по ajax-запросу
+
+            function GetVacancyList() {
+
+                $("#createBlock").css('display', 'block');
+                $("#editBlock").css('display', 'none');
+                $.ajax({
+                    url: 'https://api.hh.ru/vacancies/?page=0&per_page=50&premium=true&area=99&only_with_salary=true',  //'/api/values/',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        search_vac = data;
+                        global_vac = data;
+
+                        let rows = document.querySelector("tbody");
+                        var i;
+                        for (i = 0; i < 50; i++) {
+                            var vacancy = ParseVacancy(data.items[i]);
+                            
+                            rows.append(row(vacancy, i));
+                        }
+                    },
+                    error: function (x, y, z) {
+                        alert(x + '\n' + y + '\n' + z);
+                    }
+                });
+            }
+
+            function row(vacancy, num) {
+
+
+                const tr = document.createElement("tr");
+                tr.setAttribute("data-rowid", vacancy.id);
+
+                const numTd = document.createElement("td");
+                numTd.append(num + 1);
+                tr.append(numTd);
+
+                const idTd = document.createElement("td");
+                idTd.append(vacancy.id);
+                tr.append(idTd);
+
+
+                const linksTd = document.createElement("td");
+
+                const editLink = document.createElement("a");
+                editLink.setAttribute("data-id", vacancy.id);
+                editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+                editLink.setAttribute("target", "_blank");
+               // editLink.setAttribute("href", "https://" + document.location.host + "/Home/Details?id=" + vacancy.id);
+                //editLink.setAttribute("href", "Details?id=" + vacancy.id);
+                editLink.setAttribute("href", 'https://' + window.location.host + "/Home/Details?id=" + vacancy.id); // "Details?id=" + vacancy.id);
+
+                editLink.append(vacancy.name);
+                editLink.addEventListener("click", e => {
+                    e.preventDefault();
+                    GetVacancy(vacancy.id);
+                });
+                linksTd.append(editLink);
+
+                tr.appendChild(linksTd);
+
+                const salTd = document.createElement("td");
+                salTd.append(vacancy.salary);
+                tr.append(salTd);
+
+                const orgTd = document.createElement("td");
+                orgTd.append(vacancy.organization);
+                tr.append(orgTd);
+
+                const contTd = document.createElement("td");
+                contTd.append(vacancy.contact_person);
+                tr.append(contTd);
+
+                const phonTd = document.createElement("td");
+                phonTd.append(vacancy.phone_number);
+                tr.append(phonTd);
+
+                const emplTd = document.createElement("td");
+                emplTd.append(vacancy.empl_type);
+                tr.append(emplTd);
+
+                return tr;
+            }
+
+            // запрос вакансии 
+        function GetVacancy(id) {
+          //  document.location.href = document.location.host + "/Home/Details?id=" + id;// "Details?id=" + id;
+           // document.location.href ="Details?id=" + id;
+            window.location.href = 'https://' + window.location.host + "/Home/Details?id=" + id; // "Details?id=" + id;
+
+            target = "_blank";
+
+              /*  $.ajax({
+                    url: 'https://api.hh.ru/vacancies/' + id, // '/api/values/' + id,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        document.location.href ="https://"+ document.location.host + document.location.pathname+ "/Details?id=" + id;
+                        target = "_blank";
+                    },
+                    error: function (x, y, z) {
+                        alert(x + '\n' + y + '\n' + z);
+                    }
+                });*/
+            }
+    </script>
+}
